@@ -1,0 +1,11 @@
+/* Custom overrides / app-wide styles */
+body {
+  padding-bottom: 2rem;
+}
+h1, h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+.table th, .table td {
+  vertical-align: middle;
+}

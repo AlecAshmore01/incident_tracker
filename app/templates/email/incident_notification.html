@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <body>
+    <p>Hello {{ user.username }},</p>
+
+    {% if action == 'create' %}
+      <p>An incident has been <strong>created</strong>:</p>
+      <ul>
+        <li><strong>Title:</strong> {{ incident.title }}</li>
+        <li><strong>Category:</strong> {{ incident.category.name }}</li>
+        <li><strong>Status:</strong> {{ incident.status }}</li>
+      </ul>
+    {% else %}
+      <p>An incident has been <strong>{{ action }}</strong>:</p>
+      <ul>
+        <li><strong>Title:</strong> {{ incident.title }}</li>
+        <li><strong>New Status:</strong> {{ incident.status }}</li>
+      </ul>
+    {% endif %}
+
+    <p>View it <a href="{{ url_for('incident.view_incident', id=incident.id, _external=True) }}">here</a>.</p>
+    <p>— Incident Tracker</p>
+  </body>
+</html>

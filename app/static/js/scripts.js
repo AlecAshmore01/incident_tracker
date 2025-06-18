@@ -1,0 +1,1 @@
+console.log("Incident Tracker scripts loaded.");

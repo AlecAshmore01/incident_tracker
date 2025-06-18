@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}All Incidents{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Incidents</h2>
+    <a href="{{ url_for('incident.create_incident') }}" class="btn btn-success">New Incident</a>
+  </div>
+
+  <!-- Search & Filter Form -->
+  <form method="get" class="row gy-2 gx-2 align-items-end mb-4">
+    <div class="col-auto">
+      <label class="form-label">Search</label>
+      <input name="q" class="form-control" placeholder="Search incidents…" value="{{ q }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-select">
+        <option value="">All</option>
+        {% for s in all_statuses %}
+          <option value="{{ s }}" {% if selected_status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label">Category</label>
+      <select name="category" class="form-select">
+        <option value="">All</option>
+        {% for c in all_categories %}
+          <option value="{{ c.id }}" {% if selected_category|int == c.id %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+  </form>
+
+<!-- Incidents Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Status</th>
+        <th>Creator</th>
+        <th>Time</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inc in incidents %}
+      <tr>
+        <td>{{ inc.id }}</td>
+        <td>
+          <a href="{{ url_for('incident.view_incident', id=inc.id) }}">
+            {{ inc.title }}
+          </a>
+        </td>
+        <td>{{ inc.category.name }}</td>
+        <td>{{ inc.status }}</td>
+        <td>{{ inc.creator.username }}</td>
+        <td>{{ inc.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          <div class="d-flex align-items-center">
+            <!-- Edit button -->
+            <a href="{{ url_for('incident.edit_incident', id=inc.id) }}"
+               class="btn btn-sm btn-primary me-2">
+              Edit
+            </a>
+
+            {% if current_user.is_admin() %}
+            <!-- Delete: form + launch modal -->
+            <form method="post"
+                  action="{{ url_for('incident.delete_incident', id=inc.id) }}"
+                  class="m-0 delete-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="button"
+                      class="btn btn-sm btn-danger"
+                      data-bs-toggle="modal"
+                      data-bs-target="#confirmDeleteModal"
+                      data-type="incident">
+                Delete
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+    <nav aria-label="Incident pagination">
+      <ul class="pagination">
+        {% if pagination.has_prev %}
+          <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('incident.list_incidents',
+                                page=pagination.prev_num,
+                                q=q,
+                                status=selected_status,
+                                category=selected_category) }}">
+              ‹ Prev
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+        {% endif %}
+
+        {% for p in range(1, pagination.pages + 1) %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link"
+               href="{{ url_for('incident.list_incidents',
+                                page=p,
+                                q=q,
+                                status=selected_status,
+                                category=selected_category) }}">
+              {{ p }}
+            </a>
+          </li>
+        {% endfor %}
+
+        {% if pagination.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('incident.list_incidents',
+                                page=pagination.next_num,
+                                q=q,
+                                status=selected_status,
+                                category=selected_category) }}">
+              Next ›
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmDeleteLabel">Please Confirm</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete this? <span id="deleteTargetType"></span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <!-- Add data-bs-dismiss so modal hides immediately -->
+          <button type="button" id="confirmDeleteBtn" class="btn btn-danger btn-sm" data-bs-dismiss="modal">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      let formToDelete = null;
+      const modal = document.getElementById('confirmDeleteModal');
+
+      // When the modal is triggered, event.relatedTarget is the delete button
+      modal.addEventListener('show.bs.modal', event => {
+        const btn = event.relatedTarget;
+        formToDelete = btn.closest('form');                // grab its form
+        const type = btn.getAttribute('data-type');
+        document.getElementById('deleteTargetType').textContent = type;
+      });
+
+      // When you click "Delete" inside the modal, submit that form
+      document.getElementById('confirmDeleteBtn')
+        .addEventListener('click', () => {
+          if (formToDelete) {
+            formToDelete.submit();
+          }
+        });
+    });
+  </script>
+{% endblock %}

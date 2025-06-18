@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Home – Incident Tracker{% endblock %}
+
+{% block content %}
+  <div class="text-center">
+    <h1>Welcome to the Incident Service Tracker</h1>
+    {% if not current_user.is_authenticated %}
+      <p>
+        <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Log In</a>
+        <a class="btn btn-secondary" href="{{ url_for('auth.register') }}">Register</a>
+      </p>
+    {% else %}
+      <p>
+        <a class="btn btn-primary" href="{{ url_for('incident.list_incidents') }}">View Incidents</a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

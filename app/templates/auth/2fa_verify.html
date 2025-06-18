@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}2FA Verification{% endblock %}
+{% block content %}
+  <h2>Enter Authentication Code</h2>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.token.label(class="form-label") }}
+      {{ form.token(class="form-control") }}
+      {% for e in form.token.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+{% endblock %}
