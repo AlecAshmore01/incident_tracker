@@ -9,15 +9,21 @@
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Screenshots](#-screenshots)
+- [Live Demo](#-live-demo)
 - [Features](#features)
+- [Security Features](#-security-features)
 - [Architecture & Design](#architecture--design)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Configuration](#configuration)
-- [Usage](#usage)
+  - [Database Setup](#database-setup)
+  - [Running the App](#running-the-app)
 - [Testing & CI](#testing--ci)
-- [Deployment](#deployment)
+- [Performance Considerations](#-performance-considerations)
+- [Deployment](#deployment-production)
+- [Troubleshooting](#-troubleshooting)
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -25,9 +31,20 @@
 
 ## Project Overview
 
-**Incident Tracker** is a lightweight, Flask-based web application designed to streamline incident reporting and resolution workflows. By centralizing incident data ; titles, descriptions, categories, statuses, and user assignments, the app eliminates reliance on fragmented spreadsheets or email chains, ensuring accountability and traceability across teams.
+**Incident Tracker** is a lightweight, Flask-based web application designed to streamline incident reporting and resolution workflows. By centralizing incident data—titles, descriptions, categories, statuses, and user assignments—the app eliminates reliance on fragmented spreadsheets or email chains, ensuring accountability and traceability across teams.
 
 Users register, log in, and submit new incidents, while administrators manage user accounts, categories, and all incident records. Transactional emails confirm registration and notifications. Secure cookie flags and role-based access control mitigate risks of session hijacking and unauthorized data access.
+
+## 🖼️ Screenshots
+
+| Dashboard | Incident Form | Admin Panel |
+|-----------|---------------|-------------|
+| ![Dashboard](docs/images/dashboard.png) | ![Form](docs/images/form.png) | ![Admin](docs/images/admin.png) |
+
+## 🎯 Live Demo
+
+Try it out: [Demo Link](https://your-demo-site.com)  
+**Demo Credentials:** `admin@demo.com` / `DemoPass123`
 
 ## Features
 
@@ -39,6 +56,18 @@ Users register, log in, and submit new incidents, while administrators manage us
 - **Form Validation**: Robust input validation using WTForms for all user inputs
 - **Database Migrations**: Schema version control via Flask-Migrate (Alembic)
 - **Automated Testing & CI**: Linting, typing, and unit tests triggered on every pull request via GitHub Actions
+
+## 🔒 Security Features
+
+- **Account Lockout** - Automatic lockout after failed login attempts
+- **Secure Sessions** - HttpOnly, Secure, and SameSite cookie flags
+- **Input Validation** - Comprehensive form validation with WTForms
+- **SQL Injection Protection** - SQLAlchemy ORM with parameterized queries
+- **CSRF Protection** - Built-in Flask-WTF CSRF tokens
+- **Password Hashing** - Werkzeug secure password hashing
+- **Audit Logging** - Complete action history tracking
+
+> 🛡️ **Security Disclosure**: Found a security issue? Please email alecashmore50@gmail.com
 
 ## Architecture & Design
 
@@ -56,41 +85,55 @@ app/                  # Main application package
 └── config.py         # Environment-specific configuration
 ```
 
+## 📊 Database Schema
+
 ### Data Models
 
 - **User**  
-  - `id`  
-  - `username`  
-  - `email`  
-  - `password_hash`  
-  - `role` (admin / regular)  
-  - `failed_logins`  
-  - `lock_until`  
-  - `two_factor_secret`
+  - `id` - Primary key
+  - `username` - Unique username
+  - `email` - User email address
+  - `password_hash` - Hashed password
+  - `role` - User role (admin/regular)
+  - `failed_logins` - Failed login attempt counter
+  - `lock_until` - Account lockout timestamp
+  - `two_factor_secret` - 2FA secret key
 
 - **Category**  
-  - `id`  
-  - `name`  
-  - `description`
+  - `id` - Primary key
+  - `name` - Category name
+  - `description` - Category description
 
 - **Incident**  
-  - `id`  
-  - `title`  
-  - `description`  
-  - `status`  
-  - `timestamp`  
-  - `updated_at`  
-  - `closed_at`  
-  - `user_id` (FK → User)  
-  - `category_id` (FK → Category)
+  - `id` - Primary key
+  - `title` - Incident title
+  - `description` - Detailed description
+  - `status` - Current status
+  - `timestamp` - Creation timestamp
+  - `updated_at` - Last update timestamp
+  - `closed_at` - Resolution timestamp
+  - `user_id` - Foreign key to User
+  - `category_id` - Foreign key to Category
 
 - **AuditLog**  
-  - `id`  
-  - `user_id` (FK → User)  
-  - `action`  
-  - `target_type`  
-  - `target_id`  
-  - `timestamp`
+  - `id` - Primary key
+  - `user_id` - Foreign key to User
+  - `action` - Action performed
+  - `target_type` - Type of target entity
+  - `target_id` - ID of target entity
+  - `timestamp` - Action timestamp
+
+### Key Relationships & Indexes
+
+- **Relationships:**
+  - One User can have many Incidents
+  - One Category can classify many Incidents  
+  - All actions are logged in AuditLog for accountability
+
+- **Database Indexes:**
+  - `incidents.user_id` - Fast user incident lookups
+  - `incidents.status` - Efficient status filtering
+  - `incidents.created_at` - Timeline queries
 
 ### ERD
 
@@ -106,22 +149,26 @@ erDiagram
 
 ### Prerequisites
 
-- Python 3.13
-- Git
-- SMTP credentials for email (e.g., Gmail, SendGrid)
+- **Python 3.13+**  
+- **Git**  
+- **(Optional) SQLite CLI** — if you want to inspect the DB directly.  
+- **SMTP credentials** for email (e.g. Gmail App Password, Mailtrap).
+
+---
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repo**  
    ```bash
-   git clone <repository-url>
+   git clone <your-repo-url>
    cd incident_tracker
    ```
 
-2. **Create and activate a virtual environment**
+2. **Create & activate a virtual environment**
    ```bash
    python3 -m venv venv
-   source venv/bin/activate
+   source venv/bin/activate      # macOS/Linux
+   venv\Scripts\Activate.ps1     # Windows PowerShell
    ```
 
 3. **Install dependencies**
@@ -131,70 +178,146 @@ erDiagram
 
 ### Configuration
 
-1. **Create a `.env` file** in the project root with the following variables:
-   ```env
+1. **Create a file called `.env`** in the project root with:
+   ```ini
+   # .env
    FLASK_ENV=development
-   SECRET_KEY=<your-secret-key>
-   DATABASE_URL=sqlite:///instance/app.db
-   MAIL_SERVER=smtp.example.com
+   SECRET_KEY=your-secret-key
+   DATABASE_URL=sqlite:///app.db
+   MAIL_SERVER=smtp.gmail.com
    MAIL_PORT=587
    MAIL_USE_TLS=True
-   MAIL_USERNAME=your-email@example.com
-   MAIL_PASSWORD=your-email-password
-   MAIL_DEFAULT_SENDER=Incident Tracker <your-email@example.com>
+   MAIL_USERNAME=youremail@example.com
+   MAIL_PASSWORD=your-app-password
+   MAIL_DEFAULT_SENDER="Incident Tracker <youremail@example.com>"
    ```
 
-2. **Load environment variables** via:
+2. **Then load it into your shell:**
+
+   **macOS/Linux**
    ```bash
-   export $(cat .env | xargs)
+   export $(grep -v '^#' .env | xargs)
    ```
 
-## Usage
+   **Windows PowerShell**
+   ```powershell
+   Get-Content .env | Foreach-Object {
+     $pair = $_.Split('=',2)
+     [Environment]::SetEnvironmentVariable($pair[0], $pair[1], 'Process')
+   }
+   ```
 
-1. **Initialize database & seed data**
+   > **Tip:** You can also install `python-dotenv` and let Flask auto-load your `.env`.
+
+### Database Setup
+
+1. **Run migrations**
    ```bash
    flask db upgrade
+   ```
+
+2. **(Optional) Create a default admin**
+   
+   If you haven't got a seed script, you can make one admin manually:
+   ```bash
+   flask shell
+   ```
+   ```python
+   from app.extensions import db
+   from app.models.user import User
+   u = User(username='admin', email='admin@example.com', role='admin')
+   u.set_password('Password123!')
+   db.session.add(u)
+   db.session.commit()
+   exit()
+   ```
+
+3. **(Optional) Seed sample data**
+   
+   If you have a `seed.py`, run:
+   ```bash
    python seed.py
    ```
 
-2. **Run the development server**
-   ```bash
-   flask run
-   ```
+### Running the App
 
-3. **Access the app**
-   
-   Navigate to `http://localhost:5000`, register a new account or log in with the seeded admin (`admin@example.com` / `password`).
+```bash
+python run.py
+```
+
+Then open your browser at `http://localhost:5000` or `http://127.0.0.1:5000`.
+
+1. Register a new account (or log in with your seeded admin).
+2. If you need admin rights, either promote yourself in the DB or use the steps above.
 
 ## Testing & CI
 
-- **Unit Tests**: Run with PyTest:
+- **Unit & integration tests**
   ```bash
   pytest --cov=app
   ```
 
-- **Type Checking**: Ensure no type errors:
+- **Type-checking**
   ```bash
   mypy app
   ```
 
-- **Linting**: Validate code style:
+- **Linting**
   ```bash
   flake8
   ```
 
-These checks are automated via GitHub Actions defined in `.github/workflows/ci.yml`.
+These will be run automatically on every pull-request via GitHub Actions - Work in progress (see `.github/workflows/ci.yml`).
 
-## Deployment
+## ⚡ Performance Considerations
 
-- **Production Config**: Set `FLASK_ENV=production` and secure `SECRET_KEY`
-- **Database**: Use PostgreSQL or MySQL by updating `DATABASE_URL`
-- **Web Server**: Deploy behind Gunicorn and Nginx:
-  ```bash
-  pip install gunicorn
-  gunicorn -w 4 "app:create_app()"
-  ```
-- **Optional**: Containerize with Docker; see `Dockerfile` (Being Developed)
+- **SQLite Limitations**: Suitable for development and small teams (<100 concurrent users)
+- **Production Database**: Switch to PostgreSQL for better concurrent performance
+- **Static Files**: Consider CDN for static assets in production
+- **Caching**: Redis integration planned for session storage and caching
+
+## Deployment (Production)
+
+1. Set `FLASK_ENV=production` and a strong `SECRET_KEY`.
+2. Use a real database (Postgres/MySQL) by updating `DATABASE_URL`.
+3. Serve with Gunicorn (behind Nginx):
+   ```bash
+   pip install gunicorn
+   gunicorn -w 4 "app:create_app()"
+   ```
+4. (Optional) Dockerize with your `Dockerfile` + `docker-compose.yml`.
+   This feature is a work in progress.
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Flask app won't start**
+```bash
+# Check if port 5000 is in use
+lsof -i :5000
+# Kill the process if needed
+kill -9 <PID>
+```
+
+**Database migration fails**
+```bash
+# Reset migrations (⚠️ DESTROYS DATA)
+rm -rf migrations/
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+```
+
+**Email not sending**
+- Verify SMTP credentials in `.env`
+- Check if Gmail requires App Password (not regular password)
+- Test with a service like Mailtrap for development
+
+### Getting Help
+- 📖 Check our [Wiki](https://github.com/username/incident-tracker/wiki) for detailed guides - Currently under maintenance
+- 💬 Join our [Discord](https://discord.gg) for community support
+- 🐛 Report bugs via [GitHub Issues](https://github.com/username/incident-tracker/issues)
 
 ## Contributing
 
@@ -208,7 +331,26 @@ Please adhere to the existing code style and include tests for new functionality
 
 ## Roadmap
 
-🚧 *Coming Soon* 🚧
+### 🚀 Planned Features
+- [ ] **Bulk Operations** - Mass edit/delete incidents
+- [ ] **API Endpoints** - RESTful API for integrations
+- [ ] **Mobile App** - React Native companion app
+- [ ] **Slack Integration** - Automated notifications
+- [ ] **Advanced Reporting** - PDF exports and custom reports
+
+### 🔄 In Progress
+- [ ] Containerize the project for easy deployment
+- [ ] Move to a hosted service using Postgres
+
+### ✅ Completed
+- [x] Basic incident CRUD operations
+- [x] Email notifications
+- [x] Role-based access control
+- [x] Audit logging system
+- [x] Account lockout protection
+- [x] Advanced search and filtering
+- [x] Two-Factor Authentication (2FA)
+- [x] Dashboard analytics with charts and metrics for incident trends
 
 ## License
 
@@ -222,5 +364,5 @@ This project is licensed under the **MIT License**. See `LICENSE` for details.
 
 ---
 
-*Crafted as a README to guide users, contributors, and maintainers through every aspect of the Incident Tracker project.
-Lead Dev - Alec Ashmore*
+*Crafted as a README to guide users, contributors, and maintainers through every aspect of the Incident Tracker project.  
+**Lead Dev** - Alec Ashmore*

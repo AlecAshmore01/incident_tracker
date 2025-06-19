@@ -33,9 +33,10 @@ def create_app(config_name: str = 'dev') -> Flask:
         )
 
     # check migrations at startup
-    migrations_path = os.path.join(os.path.dirname(__file__), '..', 'migrations')
-    with app.app_context():
-        ensure_db_is_up_to_date(db.engine, migrations_path)
+    if not app.debug:
+        migrations_path = os.path.join(os.path.dirname(__file__), '..', 'migrations')
+        with app.app_context():
+            ensure_db_is_up_to_date(db.engine, migrations_path)
 
     # register blueprints
     app.register_blueprint(main_bp)

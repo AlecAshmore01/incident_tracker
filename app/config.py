@@ -29,8 +29,8 @@ class Config:
 
 class DevConfig(Config):
     DEBUG = True
-    SESSION_COOKIE_SECURE = False
-    REMEMBER_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
 
 
 class ProdConfig(Config):
