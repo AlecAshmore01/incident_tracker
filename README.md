@@ -151,8 +151,9 @@ erDiagram
 
 - **Python 3.13+**  
 - **Git**  
-- **(Optional) SQLite CLI** — if you want to inspect the DB directly.  
+- **(Optional) SQLite CLI** - if you want to inspect the DB directly.  
 - **SMTP credentials** for email (e.g. Gmail App Password, Mailtrap).
+- **Third Party Authenticator** for 2FA (e.g. Google Authenticator)
 
 ---
 
@@ -160,13 +161,13 @@ erDiagram
 
 1. **Clone the repo**  
    ```bash
-   git clone <your-repo-url>
+   git clone 'https://github.com/AlecAshmore01/incident_tracker.git'
    cd incident_tracker
    ```
 
 2. **Create & activate a virtual environment**
    ```bash
-   python3 -m venv venv
+   python -m venv venv
    source venv/bin/activate      # macOS/Linux
    venv\Scripts\Activate.ps1     # Windows PowerShell
    ```
@@ -182,13 +183,13 @@ erDiagram
    ```ini
    # .env
    FLASK_ENV=development
-   SECRET_KEY=your-secret-key
+   SECRET_KEY=your-secret-key (Whatever you want this to be)
    DATABASE_URL=sqlite:///app.db
    MAIL_SERVER=smtp.gmail.com
    MAIL_PORT=587
    MAIL_USE_TLS=True
    MAIL_USERNAME=youremail@example.com
-   MAIL_PASSWORD=your-app-password
+   MAIL_PASSWORD=your-app-password (Google Account -> Search 'App password' -> Create a new one)
    MAIL_DEFAULT_SENDER="Incident Tracker <youremail@example.com>"
    ```
 
