@@ -76,7 +76,7 @@ def edit_category(id: int) -> str:
     return render_template('categories/form.html', form=form, action='Edit')
 
 
-@category_bp.route('/delete/<int:id>', methods=['POST'])
+@category_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_category(id: int) -> str:
     if not current_user.is_admin():
@@ -84,6 +84,12 @@ def delete_category(id: int) -> str:
         return redirect(url_for('category.list_categories'))
 
     cat = IncidentCategory.query.get_or_404(id)
+
+    # Prevent deletion if category is in use
+    if cat.incidents.first():
+        flash('Cannot delete a category that is currently in use by incidents.', 'danger')
+        return redirect(url_for('category.list_categories'))
+
     db.session.delete(cat)
     db.session.commit()
 

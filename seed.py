@@ -9,8 +9,8 @@ app = create_app()
 
 with app.app_context():
     # If you want to fully reset during seeding, uncomment:
-    # db.drop_all()
-    # db.create_all()
+    db.drop_all()
+    db.create_all()
 
     # Create 10 categories
     categories = [

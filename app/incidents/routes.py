@@ -5,6 +5,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from math import ceil
+from sqlalchemy.orm import joinedload
 
 from app.incidents import incident_bp
 from app.extensions import db, mail
@@ -72,6 +73,7 @@ def list_incidents() -> str:
     # Execute with ordering and pagination
     pagination = (
         query
+        .options(joinedload(Incident.category), joinedload(Incident.creator))
         .order_by(Incident.timestamp.desc())
         .paginate(page=page, per_page=per_page, error_out=False)
     )
