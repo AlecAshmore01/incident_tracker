@@ -314,6 +314,7 @@ flask db upgrade
 - Verify SMTP credentials in `.env`
 - Check if Gmail requires App Password (not regular password)
 - Test with a service like Mailtrap for development
+- Ensure you're not connected to a VPN
 
 ### Getting Help
 - 📖 Check our [Wiki](https://github.com/username/incident-tracker/wiki) for detailed guides - Currently under maintenance
