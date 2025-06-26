@@ -256,23 +256,30 @@ Then open your browser at `http://localhost:5000` or `http://127.0.0.1:5000`.
 
 ## Testing & CI
 
-- **Unit & integration tests**
-  ```bash
-  $env:PYTHONPATH="."; pytest tests/test_basic.py
+- **Run all tests with coverage and detailed output:**
+  ```powershell
+  $env:PYTHONPATH="."; pytest --cov=app --cov-report=term-missing --cov-report=html -v
   ```
+  - This prints a summary of test results and shows which lines are missing coverage.
+  - An HTML coverage report will be generated in `htmlcov/index.html`—open this file in your browser for a visual summary.
 
-- **Type-checking**
-  ```bash
+- **Type-checking:**
+  ```powershell
   mypy app
   ```
 
-- **Linting**
-  ```bash
+- **Linting:**
+  ```powershell
   flake8
   ```
 
-These will be run automatically on every pull-request via GitHub Actions - Work in progress (see `.github/workflows/ci.yml`).
-Currently these will need to be ran **manually**
+These checks are also run automatically on every pull request via GitHub Actions (see `.github/workflows/ci.yml`). For now, run them manually as above.
+
+### Example Test Results
+
+| All Tests Passing | Coverage Report |
+|-------------------|----------------|
+| ![All Tests Passing](docs/images/tests_passing.png) | ![Coverage Report](docs/images/coverage_report.png) |
 
 ## ⚡ Performance Considerations
 

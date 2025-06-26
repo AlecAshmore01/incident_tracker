@@ -811,7 +811,6 @@ def test_audit_log_for_incident_crud(client, app):
 
 
 def test_csrf_protection(client, app):
-    # Only meaningful if CSRF is enabled in your app
     with app.app_context():
         admin = User(username="csrfadmin", email="csrfadmin@example.com", role="admin")
         admin.password_hash = "hashed"
