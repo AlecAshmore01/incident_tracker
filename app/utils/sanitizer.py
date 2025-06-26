@@ -2,7 +2,7 @@
 
 import bleach
 
-# Define exactly what markup you'll allow
+# Define allowed markup
 ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'p', 'ul', 'ol', 'li', 'br']
 ALLOWED_ATTRS: dict = {}  # no tag-specific attributes
 
