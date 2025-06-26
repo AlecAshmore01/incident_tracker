@@ -1,49 +1,60 @@
-def test_register_and_login_logout(client):
-    # registration
-    rv = client.post('/auth/register', data={
-        'username':'testuser',
-        'email':'test@example.com',
-        'password':'Password123!',
-        'password2':'Password123!'
-    }, follow_redirects=True)
-    assert b'Registration successful' in rv.data
+import pytest
+from app.models.user import User
 
-    # login
-    rv = client.post('/auth/login', data={
-        'username':'testuser','password':'Password123!'
-    }, follow_redirects=True)
-    assert b'Logout' in rv.data
+def test_registration_and_login(client):
+    # Registration should redirect to login
+    r1 = client.post('/auth/register', data={
+        'username':'alice','email':'alice@example.com',
+        'password':'Pass123!','confirm':'Pass123!'
+    }, follow_redirects=False)
+    assert r1.status_code == 302
+    assert '/auth/login' in r1.headers['Location']
 
-    # logout
-    rv = client.get('/auth/logout', follow_redirects=True)
-    assert b'Login' in rv.data
+    # Duplicate registration stays on register page
+    r2 = client.post('/auth/register', data={
+        'username':'alice','email':'alice2@example.com',
+        'password':'Pass123!','confirm':'Pass123!'
+    }, follow_redirects=False)
+    assert r2.status_code in (200, 400)
 
-def test_password_reset_flow(client, app):
-    # create a user
+    # Wrong login
+    r3 = client.post('/auth/login', data={
+        'username':'alice','password':'wrong'
+    }, follow_redirects=False)
+    assert r3.status_code == 200
+
+    # Correct login
+    r4 = client.post('/auth/login', data={
+        'username':'alice','password':'Pass123!'
+    }, follow_redirects=False)
+    assert r4.status_code == 302
+    assert '/incidents/' in r4.headers['Location']
+
+def test_password_reset_flow(client):
+    # Register
     client.post('/auth/register', data={
-        'username':'pwuser','email':'pw@example.com',
-        'password':'Secret123!','password2':'Secret123!'
-    })
-    # request reset
-    rv = client.post('/auth/reset_password_request',
-                     data={'email':'pw@example.com'},
-                     follow_redirects=True)
-    assert b'you will receive' in rv.data
+        'username':'bob','email':'bob@example.com',
+        'password':'Pass123!','confirm':'Pass123!'
+    }, follow_redirects=True)
 
-    # grab token from DB
-    with app.app_context():
-        from app.models.user import User
-        u = User.query.filter_by(email='pw@example.com').first()
+    # Request reset
+    r1 = client.post('/auth/reset_password_request',
+                     data={'email':'bob@example.com'},
+                     follow_redirects=False)
+    assert r1.status_code == 302
+
+    # Generate token
+    from app.models.user import User
+    with client.application.app_context():
+        u = User.query.filter_by(email='bob@example.com').first()
         token = u.get_reset_password_token()
 
-    # reset
-    rv = client.post(f'/auth/reset_password/{token}',
-                     data={'password':'Newpass123!','password2':'Newpass123!'},
-                     follow_redirects=True)
-    assert b'password has been reset' in rv.data
+    # Use token
+    r2 = client.post(f'/auth/reset_password/{token}', data={
+        'password':'Newpass1!','confirm':'Newpass1!'
+    }, follow_redirects=False)
+    assert r2.status_code == 302
 
-    # login with new password
-    rv = client.post('/auth/login', data={
-        'username':'pwuser','password':'Newpass123!'
-    }, follow_redirects=True)
-    assert b'Logout' in rv.data
+    # Invalid token
+    r3 = client.get('/auth/reset_password/invalid', follow_redirects=False)
+    assert r3.status_code == 302

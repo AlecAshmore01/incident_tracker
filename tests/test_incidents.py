@@ -1,47 +1,43 @@
 import pytest
+from app.models.incident import Incident
+from app.models.category import IncidentCategory
 
 @pytest.fixture
-def logged_in_client(client):
-    # register & login a test admin
-    client.post('/auth/register', data={
-        'username':'admin','email':'admin@x.com',
-        'password':'Admin123!','password2':'Admin123!'
-    })
-    # promote to admin
-    from app.models.user import User
-    with client.application.app_context():
-        u = User.query.filter_by(username='admin').first()
-        u.role = 'admin'; client.application.extensions['sqlalchemy'].db.session.commit()
-    client.post('/auth/login', data={'username':'admin','password':'Admin123!'})
-    return client
+def sample_category(auth_client):
+    # create a category via the route
+    resp = auth_client.post('/categories/create', data={
+        'name':'Network','description':'Net issues'
+    }, follow_redirects=False)
+    assert resp.status_code == 302
+    return IncidentCategory.query.filter_by(name='Network').first()
 
-def test_create_read_update_delete_incident(logged_in_client):
-    c = logged_in_client
+def test_incident_crud(auth_client, sample_category):
+    # Create
+    c = sample_category
+    r1 = auth_client.post('/incidents/create', data={
+        'title':'Inc1','description':'Desc','status':'Open','category':c.id
+    }, follow_redirects=False)
+    assert r1.status_code == 302
 
-    # create a category first
-    c.post('/categories/create', data={'name':'TestCat','description':'d'})
+    inc = Incident.query.filter_by(title='Inc1').first()
+    assert inc is not None
 
-    # create incident
-    rv = c.post('/incidents/create', data={
-        'title':'Test','description':'Desc','status':'Open','category':'1'
-    }, follow_redirects=True)
-    assert b'Incident created' in rv.data
+    # List
+    r2 = auth_client.get('/incidents/')
+    assert b'Inc1' in r2.data
 
-    # list & view
-    rv = c.get('/incidents/')
-    assert b'Test' in rv.data
-    rv = c.get('/incidents/1')
-    assert b'Desc' in rv.data
+    # View
+    r3 = auth_client.get(f'/incidents/{inc.id}')
+    assert b'Desc' in r3.data
 
-    # edit
-    rv = c.post('/incidents/1/edit', data={
-        'title':'Test2','description':'Desc2','status':'Closed','category':'1'
-    }, follow_redirects=True)
-    assert b'Incident updated' in rv.data
-    assert b'Test2' in rv.data
+    # Edit
+    r4 = auth_client.post(f'/incidents/{inc.id}/edit', data={
+        'title':'Inc1u','description':'Desc2','status':'Closed','category':c.id
+    }, follow_redirects=False)
+    assert r4.status_code == 302
+    assert Incident.query.get(inc.id).status == 'Closed'
 
-    # delete
-    rv = c.post('/incidents/1/delete', follow_redirects=True)
-    assert b'Incident deleted' in rv.data
-    rv = c.get('/incidents/')
-    assert b'Test2' not in rv.data
+    # Delete
+    r5 = auth_client.post(f'/incidents/{inc.id}/delete', follow_redirects=False)
+    assert r5.status_code == 302
+    assert Incident.query.get(inc.id) is None

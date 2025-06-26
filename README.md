@@ -10,7 +10,6 @@
 
 - [Project Overview](#project-overview)
 - [Screenshots](#-screenshots)
-- [Live Demo](#-live-demo)
 - [Features](#features)
 - [Security Features](#-security-features)
 - [Architecture & Design](#architecture--design)
@@ -40,11 +39,6 @@ Users register, log in, and submit new incidents, while administrators manage us
 | Dashboard | Incident Form | Admin Panel |
 |-----------|---------------|-------------|
 | ![Dashboard](docs/images/dashboard.png) | ![Form](docs/images/form.png) | ![Admin](docs/images/admin.png) |
-
-## 🎯 Live Demo
-
-Try it out: [Demo Link](https://your-demo-site.com)  
-**Demo Credentials:** `admin@demo.com` / `DemoPass123`
 
 ## Features
 
