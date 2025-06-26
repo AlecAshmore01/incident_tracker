@@ -2,9 +2,10 @@ import os
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from alembic.runtime.migration import MigrationContext
+from sqlalchemy.engine import Engine
 
 
-def ensure_db_is_up_to_date(db_engine, migrations_path: str):
+def ensure_db_is_up_to_date(db_engine: Engine, migrations_path: str) -> None:
     """
     Raises RuntimeError if the database's current revision does not match
     the latest (head) revision in the migrations directory.

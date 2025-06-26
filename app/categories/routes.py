@@ -1,7 +1,8 @@
 from flask import (
-    render_template, redirect, url_for, flash
+    render_template, redirect, url_for, flash, Response
 )
 from flask_login import login_required, current_user
+from flask.typing import ResponseReturnValue
 
 from app.categories import category_bp
 from app.extensions import db
@@ -23,14 +24,14 @@ def log_action(action: str, target_id: int) -> None:
 
 @category_bp.route('/')
 @login_required
-def list_categories() -> str:
+def list_categories() -> ResponseReturnValue:
     categories = IncidentCategory.query.order_by(IncidentCategory.name).all()
     return render_template('categories/list.html', categories=categories)
 
 
 @category_bp.route('/create', methods=['GET', 'POST'])
 @login_required
-def create_category() -> str:
+def create_category() -> ResponseReturnValue:
     if not current_user.is_admin():
         flash('Only admins can manage categories.', 'danger')
         return redirect(url_for('category.list_categories'))
@@ -55,7 +56,7 @@ def create_category() -> str:
 
 @category_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-def edit_category(id: int) -> str:
+def edit_category(id: int) -> ResponseReturnValue:
     if not current_user.is_admin():
         flash('Only admins can manage categories.', 'danger')
         return redirect(url_for('category.list_categories'))
@@ -78,7 +79,7 @@ def edit_category(id: int) -> str:
 
 @category_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
-def delete_category(id: int) -> str:
+def delete_category(id: int) -> ResponseReturnValue:
     if not current_user.is_admin():
         flash('Only admins can manage categories.', 'danger')
         return redirect(url_for('category.list_categories'))

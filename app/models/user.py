@@ -63,6 +63,8 @@ class User(UserMixin, db.Model):  # type: ignore
 
     def get_totp_uri(self) -> str:
         """Return provisioning URL for authenticator apps."""
+        if self.otp_secret is None:
+            raise ValueError("otp_secret is not set for this user.")
         return pyotp.totp.TOTP(self.otp_secret).provisioning_uri(
             name=self.email,
             issuer_name="IncidentTracker"
@@ -78,7 +80,7 @@ class User(UserMixin, db.Model):  # type: ignore
         return s.dumps(self.id, salt='password-reset-salt')
 
     @staticmethod
-    def verify_reset_password_token(token: str):
+    def verify_reset_password_token(token: str) -> Optional["User"]:
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             user_id = s.loads(token, salt='password-reset-salt', max_age=600)

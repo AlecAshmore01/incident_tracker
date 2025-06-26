@@ -4,7 +4,7 @@ from typing import Optional
 from app.extensions import db
 
 
-class AuditLog(db.Model):
+class AuditLog(db.Model):  # type: ignore
     __tablename__ = 'audit_logs'
 
     id: int = db.Column(db.Integer, primary_key=True)

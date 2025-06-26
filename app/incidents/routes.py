@@ -1,11 +1,12 @@
 from datetime import datetime
 from flask import (
     render_template, redirect, url_for, flash,
-    current_app, request
+    current_app, request, Response
 )
 from flask_login import login_required, current_user
 from math import ceil
 from sqlalchemy.orm import joinedload
+from flask.typing import ResponseReturnValue
 
 from app.incidents import incident_bp
 from app.extensions import db, mail
@@ -105,7 +106,7 @@ def view_incident(id: int) -> str:
 
 @incident_bp.route('/create', methods=['GET', 'POST'])
 @login_required
-def create_incident() -> str:
+def create_incident() -> ResponseReturnValue:
     form = IncidentForm()
     form.category.choices = [
         (c.id, c.name) for c in IncidentCategory.query.all()
@@ -142,7 +143,7 @@ def create_incident() -> str:
 
 @incident_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-def edit_incident(id: int) -> str:
+def edit_incident(id: int) -> ResponseReturnValue:
     inc = Incident.query.get_or_404(id)
     if not (current_user.is_admin() or inc.creator == current_user):
         flash('Access denied.', 'danger')
@@ -185,7 +186,7 @@ def edit_incident(id: int) -> str:
 
 @incident_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
-def delete_incident(id: int) -> str:
+def delete_incident(id: int) -> ResponseReturnValue:
     inc = Incident.query.get_or_404(id)
     if not current_user.is_admin():
         flash('Only admins can delete incidents.', 'danger')

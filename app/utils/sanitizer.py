@@ -2,9 +2,9 @@
 
 import bleach
 
-# Define exactly what markup you’ll allow
+# Define exactly what markup you'll allow
 ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'p', 'ul', 'ol', 'li', 'br']
-ALLOWED_ATTRS = {}  # no tag-specific attributes
+ALLOWED_ATTRS: dict = {}  # no tag-specific attributes
 
 
 def clean_html(raw_html: str) -> str:

@@ -11,9 +11,11 @@ from flask import (
     flash,
     current_app,
     session,
+    Response
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
+from flask.typing import ResponseReturnValue
 
 from app.auth.forms import RegistrationForm, LoginForm, OTPForm, ResetPasswordRequestForm, ResetPasswordForm
 from app.extensions import db, bcrypt, limiter, mail
@@ -23,7 +25,7 @@ auth_bp = Blueprint('auth', __name__, template_folder='templates/auth')
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
-def register() -> str:
+def register() -> ResponseReturnValue:
     form = RegistrationForm()
     if form.validate_on_submit():
         # Hash the password with Bcrypt
@@ -46,7 +48,7 @@ def register() -> str:
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")  # Prevent brute-force
-def login() -> str:
+def login() -> ResponseReturnValue:
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
@@ -83,7 +85,7 @@ def login() -> str:
 
 
 @auth_bp.route('/2fa-setup')
-def two_factor_setup() -> str:
+def two_factor_setup() -> ResponseReturnValue:
     user_id = session.get('pre_2fa_user')
     if not user_id:
         return redirect(url_for('auth.login'))
@@ -103,7 +105,7 @@ def two_factor_setup() -> str:
 
 
 @auth_bp.route('/2fa-verify', methods=['GET', 'POST'])
-def two_factor_verify() -> str:
+def two_factor_verify() -> ResponseReturnValue:
     user_id = session.get('pre_2fa_user')
     if not user_id:
         return redirect(url_for('auth.login'))
@@ -127,14 +129,14 @@ def two_factor_verify() -> str:
 
 @auth_bp.route('/logout')
 @login_required
-def logout() -> str:
+def logout() -> ResponseReturnValue:
     logout_user()
     flash('You have been logged out.', 'info')
     return redirect(url_for('main.index'))
 
 
 @auth_bp.route('/reset_password_request', methods=['GET', 'POST'])
-def reset_password_request():
+def reset_password_request() -> ResponseReturnValue:
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
     form = ResetPasswordRequestForm()
@@ -167,7 +169,7 @@ def reset_password_request():
 
 
 @auth_bp.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
+def reset_password(token: str) -> ResponseReturnValue:
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
     user = User.verify_reset_password_token(token)

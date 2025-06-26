@@ -4,7 +4,7 @@ from typing import Optional
 
 
 @whooshee.register_model('title', 'description')
-class Incident(db.Model):
+class Incident(db.Model):  # type: ignore
     __tablename__ = 'incidents'
     id: int = db.Column(db.Integer, primary_key=True)
     title: str = db.Column(db.String(140), nullable=False)

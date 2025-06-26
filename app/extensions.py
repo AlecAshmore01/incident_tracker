@@ -8,6 +8,7 @@ from flask_limiter.util import get_remote_address
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_whooshee import Whooshee
+from flask import Flask
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -28,7 +29,7 @@ CSP = {
 }
 
 
-def init_extensions(app):
+def init_extensions(app: Flask) -> None:
     db.init_app(app)
     migrate.init_app(app, db)
     login_mgr.init_app(app)
