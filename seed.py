@@ -25,7 +25,7 @@ with app.app_context():
     for i in range(1, 11):
         if i == 1:
             role = 'admin'
-            email = "alecashmore50@gmail.com"
+            email = "<your-email-address>"
         else:
             role = 'regular'
             email = f"user{i}@example.com"
