@@ -86,9 +86,9 @@ class User(UserMixin, db.Model):  # type: ignore
             user_id = s.loads(token, salt='password-reset-salt', max_age=600)
         except Exception:
             return None
-        return User.query.get(user_id)
+        return db.session.get(User, user_id)
 
 
 @login_mgr.user_loader
 def load_user(user_id: Any) -> Optional[User]:
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))

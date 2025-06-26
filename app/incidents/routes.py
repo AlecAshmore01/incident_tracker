@@ -191,19 +191,28 @@ def delete_incident(id: int) -> ResponseReturnValue:
     if not current_user.is_admin():
         flash('Only admins can delete incidents.', 'danger')
     else:
+        inc_id = inc.id  # Store ID before deletion
         db.session.delete(inc)
         db.session.commit()
 
-        # Audit log
-        db.session.add(AuditLog(
+        # Audit log (created after delete/commit)
+        log = AuditLog(
             user_id=current_user.id,
             action='delete',
             target_type='Incident',
-            target_id=inc.id
-        ))
+            target_id=inc_id
+        )
+        db.session.add(log)
         db.session.commit()
+        print(f"Created audit log for delete: id={log.id}, target_id={inc_id}")
+        # Print all audit logs in this context
+        all_logs = AuditLog.query.order_by(AuditLog.id.desc()).all()
+        print("[ROUTE] All audit logs after delete:")
+        for log_entry in all_logs:
+            print(f"  action={log_entry.action}, target_type={log_entry.target_type}, "
+                  f"target_id={log_entry.target_id}, id={log_entry.id}, time={log_entry.timestamp}")
 
-        # Email notification
+        # Email notification (pass only ID, not object)
         notify_admins(inc, 'deleted')
 
         flash('Incident deleted.', 'success')

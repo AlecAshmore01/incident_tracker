@@ -1,7 +1,7 @@
 # Incident Tracker
 
-[![Python](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)  
-[![Flask](https://img.shields.io/badge/flask-2.2.5-orange)](https://flask.palletsprojects.com/)  
+[![Python](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/flask-2.2.5-orange)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
@@ -83,7 +83,7 @@ app/                  # Main application package
 
 ### Data Models
 
-- **User**  
+- **User**
   - `id` - Primary key
   - `username` - Unique username
   - `email` - User email address
@@ -93,12 +93,12 @@ app/                  # Main application package
   - `lock_until` - Account lockout timestamp
   - `two_factor_secret` - 2FA secret key
 
-- **Category**  
+- **Category**
   - `id` - Primary key
   - `name` - Category name
   - `description` - Category description
 
-- **Incident**  
+- **Incident**
   - `id` - Primary key
   - `title` - Incident title
   - `description` - Detailed description
@@ -109,7 +109,7 @@ app/                  # Main application package
   - `user_id` - Foreign key to User
   - `category_id` - Foreign key to Category
 
-- **AuditLog**  
+- **AuditLog**
   - `id` - Primary key
   - `user_id` - Foreign key to User
   - `action` - Action performed
@@ -121,7 +121,7 @@ app/                  # Main application package
 
 - **Relationships:**
   - One User can have many Incidents
-  - One Category can classify many Incidents  
+  - One Category can classify many Incidents
   - All actions are logged in AuditLog for accountability
 
 - **Database Indexes:**
@@ -143,9 +143,9 @@ erDiagram
 
 ### Prerequisites
 
-- **Python 3.13+**  
-- **Git**  
-- **(Optional) SQLite CLI** - if you want to inspect the DB directly.  
+- **Python 3.13+**
+- **Git**
+- **(Optional) SQLite CLI** - if you want to inspect the DB directly.
 - **SMTP credentials** for email (e.g. Gmail App Password, Mailtrap).
 - **Third Party Authenticator** for 2FA (e.g. Google Authenticator)
 
@@ -153,7 +153,7 @@ erDiagram
 
 ### Installation
 
-1. **Clone the repo**  
+1. **Clone the repo**
    ```bash
    git clone 'https://github.com/AlecAshmore01/incident_tracker.git'
    cd incident_tracker
@@ -211,8 +211,24 @@ erDiagram
    flask db upgrade
    ```
 
-2. **(Optional) Create a default admin**
-   
+2. **Seed sample data - File exists in root**
+
+   The `seed.py` script will populate your database with 10 users, 10 categories, and 10 incidents, distributed across a few days for dashboard variety.
+
+   **Important:**
+   - On **line 28** of `seed.py`, replace the default admin email (`<your-email>`) with your own email address if you want to receive admin notifications or test email features.
+   - Example:
+     ```python
+     email = "your.email@example.com"  # <-- Add your own email here for the admin user
+     ```
+
+   To run the seed script:
+   ```bash
+   python seed.py
+   ```
+
+3. **(Optional) Create a default admin**
+
    If you haven't got a seed script, you can make one admin manually:
    ```bash
    flask shell
@@ -225,13 +241,6 @@ erDiagram
    db.session.add(u)
    db.session.commit()
    exit()
-   ```
-
-3. **(Optional) Seed sample data**
-   
-   If you have a `seed.py`, run:
-   ```bash
-   python seed.py
    ```
 
 ### Running the App
@@ -249,7 +258,7 @@ Then open your browser at `http://localhost:5000` or `http://127.0.0.1:5000`.
 
 - **Unit & integration tests**
   ```bash
-  pytest --cov=app
+  $env:PYTHONPATH="."; pytest tests/test_basic.py
   ```
 
 - **Type-checking**
@@ -263,6 +272,7 @@ Then open your browser at `http://localhost:5000` or `http://127.0.0.1:5000`.
   ```
 
 These will be run automatically on every pull-request via GitHub Actions - Work in progress (see `.github/workflows/ci.yml`).
+Currently these will need to be ran **manually**
 
 ## ⚡ Performance Considerations
 
@@ -360,5 +370,5 @@ This project is licensed under the **MIT License**. See `LICENSE` for details.
 
 ---
 
-*Crafted as a README to guide users, contributors, and maintainers through every aspect of the Incident Tracker project.  
+*Crafted as a README to guide users, contributors, and maintainers through every aspect of the Incident Tracker project.
 **Lead Dev** - Alec Ashmore*

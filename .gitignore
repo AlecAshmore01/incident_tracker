@@ -62,6 +62,9 @@ nosetests.xml
 coverage.xml
 *,cover
 
+# Search index files
+whooshee/
+
 # IDE/editor folders
 .vscode/
 .idea/

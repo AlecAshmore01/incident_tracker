@@ -90,7 +90,7 @@ def two_factor_setup() -> ResponseReturnValue:
     if not user_id:
         return redirect(url_for('auth.login'))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     # Generate provisioning URI and QR code
     uri = user.get_totp_uri()
     img = qrcode.make(uri)
@@ -110,7 +110,7 @@ def two_factor_verify() -> ResponseReturnValue:
     if not user_id:
         return redirect(url_for('auth.login'))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     form = OTPForm()
     if form.validate_on_submit():
         token = form.token.data
