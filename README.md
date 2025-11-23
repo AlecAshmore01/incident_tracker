@@ -3,6 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/flask-2.2.5-orange)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI/CD](https://github.com/AlecAshmore01/incident_tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/AlecAshmore01/incident_tracker/actions/workflows/ci.yml)
 
 ---
 
@@ -273,7 +274,15 @@ Then open your browser at `http://localhost:5000` or `http://127.0.0.1:5000`.
   flake8
   ```
 
-These checks are also run automatically on every pull request via GitHub Actions (see `.github/workflows/ci.yml`). For now, run them manually as above.
+These checks are also run automatically on every push and pull request via GitHub Actions (see `.github/workflows/ci.yml`). The CI/CD pipeline includes:
+
+- **Automated Testing**: Runs pytest with coverage across Python 3.11, 3.12, and 3.13
+- **Type Checking**: Validates code with mypy
+- **Linting**: Checks code style with flake8
+- **Security Tests**: Runs security-focused test cases (XSS, SQL injection, CSRF)
+- **Build Verification**: Ensures the application builds successfully
+
+You can also run these checks manually using the commands above.
 
 ### Example Test Results
 
