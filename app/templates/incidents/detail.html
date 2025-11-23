@@ -2,14 +2,76 @@
 {% block title %}Incident {{ incident.id }}{% endblock %}
 
 {% block content %}
-  <h2>Incident #{{ incident.id }}: {{ incident.title }}</h2>
-  <p><strong>Category:</strong> {{ incident.category.name }}</p>
-  <p><strong>Status:</strong> {{ incident.status }}</p>
-  <p><strong>Created by:</strong> {{ incident.creator.username }}
-     at {{ incident.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-  <hr>
-  <p>{{ incident.description }}</p>
-  <hr>
-  <a href="{{ url_for('incident.edit_incident', id=incident.id) }}" class="btn btn-primary">Edit</a>
-  <a href="{{ url_for('incident.list_incidents') }}" class="btn btn-secondary">Back to List</a>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Incident #{{ incident.id }}</h2>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('incident.edit_incident', id=incident.id) }}" class="btn btn-primary">
+        Edit
+      </a>
+      <a href="{{ url_for('incident.list_incidents') }}" class="btn btn-secondary">
+        Back to List
+      </a>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h3 class="mb-3">{{ incident.title }}</h3>
+      
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <p class="mb-2">
+            <strong>Category:</strong>
+            <span class="badge bg-secondary ms-2">{{ incident.category.name }}</span>
+          </p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-2">
+            <strong>Status:</strong>
+            {% if incident.status == 'Open' %}
+              <span class="badge status-open ms-2">
+                {{ incident.status }}
+              </span>
+            {% elif incident.status == 'In Progress' %}
+              <span class="badge status-in-progress ms-2">
+                {{ incident.status }}
+              </span>
+            {% elif incident.status == 'Resolved' %}
+              <span class="badge status-resolved ms-2">
+                {{ incident.status }}
+              </span>
+            {% elif incident.status == 'Closed' %}
+              <span class="badge status-closed ms-2">
+                {{ incident.status }}
+              </span>
+            {% else %}
+              <span class="badge bg-secondary ms-2">{{ incident.status }}</span>
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <p class="mb-2">
+            <strong>Created by:</strong>
+            {{ incident.creator.username }}
+          </p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-2">
+            <strong>Created at:</strong>
+            {{ incident.timestamp.strftime('%Y-%m-%d %H:%M') }}
+          </p>
+        </div>
+      </div>
+
+      <hr>
+
+      <div>
+        <h5 class="mb-3">Description</h5>
+        <p class="text-muted" style="white-space: pre-wrap;">{{ incident.description }}</p>
+      </div>
+    </div>
+  </div>
 {% endblock %}

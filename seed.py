@@ -25,14 +25,19 @@ with app.app_context():
     for i in range(1, 11):
         if i == 1:
             role = 'admin'
-            email = "<your-email-address>"
+            email = "alecashmore50@gmail.com"  # Replace with your actual email
         else:
             role = 'regular'
             email = f"user{i}@example.com"
 
-        u = User(username=f"user{i}", email=email, role=role)
-        # Hash the seed password with Bcrypt
-        u.password_hash = bcrypt.generate_password_hash("Password123").decode('utf-8')
+        # Hash the seed password with Bcrypt before creating user
+        password_hash = bcrypt.generate_password_hash("Password123").decode('utf-8')
+        u = User(
+            username=f"user{i}",
+            email=email,
+            role=role,
+            password_hash=password_hash
+        )
         users.append(u)
 
     db.session.add_all(users)

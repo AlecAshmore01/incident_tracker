@@ -4,17 +4,20 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask_login import UserMixin
 from app.extensions import db, login_mgr, bcrypt
 from flask import current_app
+from sqlalchemy.orm import validates
 import pyotp
+import re
+from app.utils.error_handler import ValidationError
 
 
 class User(UserMixin, db.Model):  # type: ignore
     __tablename__ = 'users'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    username: str = db.Column(db.String(64), unique=True, nullable=False)
-    email: str = db.Column(db.String(120), unique=True, nullable=False)
+    username: str = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    email: str = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash: str = db.Column(db.String(128), nullable=False)
-    role: str = db.Column(db.String(20), default='regular', nullable=False)
+    role: str = db.Column(db.String(20), default='regular', nullable=False, index=True)
 
     # Lockout fields
     failed_logins: int = db.Column(db.Integer, default=0, nullable=False)
@@ -60,6 +63,46 @@ class User(UserMixin, db.Model):  # type: ignore
 
     def __repr__(self) -> str:
         return f'<User {self.username} ({self.role})>'
+
+    @validates('username')
+    def validate_username(self, key: str, value: str) -> str:
+        """Validate username."""
+        if not value or not value.strip():
+            raise ValidationError("Username cannot be empty")
+        value = value.strip()
+        if len(value) < 3:
+            raise ValidationError("Username must be at least 3 characters long")
+        if len(value) > 64:
+            raise ValidationError("Username cannot exceed 64 characters")
+        # Check for HTML tags
+        if '<' in value or '>' in value:
+            raise ValidationError("Username cannot contain HTML tags")
+        # Check for valid characters (alphanumeric, underscore, hyphen)
+        if not re.match(r'^[a-zA-Z0-9_-]+$', value):
+            raise ValidationError("Username can only contain letters, numbers, underscores, and hyphens")
+        return value
+
+    @validates('email')
+    def validate_email(self, key: str, value: str) -> str:
+        """Validate email address."""
+        if not value or not value.strip():
+            raise ValidationError("Email cannot be empty")
+        value = value.strip().lower()
+        if len(value) > 120:
+            raise ValidationError("Email cannot exceed 120 characters")
+        # Basic email format validation
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, value):
+            raise ValidationError("Invalid email format")
+        return value
+
+    @validates('role')
+    def validate_role(self, key: str, value: str) -> str:
+        """Validate user role."""
+        allowed_roles = ['regular', 'admin']
+        if value not in allowed_roles:
+            raise ValidationError(f"Role must be one of: {', '.join(allowed_roles)}")
+        return value
 
     def get_totp_uri(self) -> str:
         """Return provisioning URL for authenticator apps."""

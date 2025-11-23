@@ -103,7 +103,7 @@ def test_incident_model(app):
         db.session.commit()
         inc = Incident(
             title="Test Incident",
-            description="Test Desc",
+            description="Test Description",
             status="Open",
             user_id=user.id,
             category_id=cat.id
@@ -307,7 +307,7 @@ def test_category_deletion_fails_if_in_use(client, app):
         db.session.commit()
         inc = Incident(
             title="TestInc",
-            description="desc",
+            description="Test description",
             status="Open",
             user_id=admin.id,
             category_id=cat.id
@@ -330,7 +330,7 @@ def test_incident_edit_by_owner(client, app):
         db.session.commit()
         inc = Incident(
             title="EditMe",
-            description="desc",
+            description="Test description",
             status="Open",
             user_id=user.id,
             category_id=cat.id
@@ -368,7 +368,7 @@ def test_incident_edit_forbidden_for_non_owner(client, app):
         db.session.commit()
         inc = Incident(
             title="NoEdit",
-            description="desc",
+            description="Test description",
             status="Open",
             user_id=owner.id,
             category_id=cat.id
@@ -380,7 +380,7 @@ def test_incident_edit_forbidden_for_non_owner(client, app):
     login_user_direct(client, app, "other")
     resp = client.post(
         f'/incidents/{inc_id}/edit',
-        data={"title": "Hacked", "description": "bad", "status": "Closed", "category": cat_id},
+            data={"title": "Hacked", "description": "bad description", "status": "Closed", "category": cat_id},
         follow_redirects=True
     )
     assert (
@@ -462,7 +462,7 @@ def test_incident_list_pagination(client, app):
         db.session.add(cat)
         db.session.commit()
         for i in range(15):
-            inc = Incident(title=f"PagInc{i}", description="desc", status="Open", user_id=user.id, category_id=cat.id)
+            inc = Incident(title=f"PagInc{i}", description="Test description", status="Open", user_id=user.id, category_id=cat.id)
             db.session.add(inc)
         db.session.commit()
     login_user_direct(client, app, "paguser")
@@ -829,6 +829,7 @@ def test_csrf_protection(client, app):
 
 
 def test_xss_sanitization_on_incident_description(client, app):
+    from app.services.incident_service import IncidentService
     with app.app_context():
         user = User(username="xssuser", email="xssuser@example.com", role="regular")
         user.password_hash = "hashed"
@@ -837,17 +838,22 @@ def test_xss_sanitization_on_incident_description(client, app):
         db.session.add(cat)
         db.session.commit()
         cat_id = cat.id
-    login_user_direct(client, app, "xssuser")
-    xss_payload = "<script>alert('xss')</script>Safe text"
-    client.post(
-        '/incidents/create',
-        data={"title": "XSS", "description": xss_payload, "status": "Open", "category": cat_id, "submit": True},
-        follow_redirects=True
-    )
+        user_id = user.id
+    # Create incident directly through service layer to bypass form validation
+    # (Form validator rejects script tags, but service layer sanitizes them)
     with app.app_context():
-        inc = Incident.query.filter_by(title="XSS").first()
-        # Only check that <script> is removed, as bleach leaves JS code
+        xss_payload = "<script>alert('xss')</script>Safe text here"
+        inc = IncidentService.create_incident(
+            title="XSS",
+            description=xss_payload,
+            status="Open",
+            category_id=cat_id,
+            user_id=user_id
+        )
+        db.session.refresh(inc)
+        # Only check that <script> is removed, as bleach sanitizes HTML
         assert "<script>" not in inc.description
+        assert "Safe text here" in inc.description
 
 
 def test_promote_and_demote_user_role(client, app):
@@ -944,7 +950,7 @@ def test_no_audit_log_for_failed_category_delete(client, app):
         cat = IncidentCategory(name="FailAudCat", description="desc")
         db.session.add(cat)
         db.session.commit()
-        inc = Incident(title="FailAudInc", description="desc", status="Open", user_id=admin.id, category_id=cat.id)
+        inc = Incident(title="FailAudInc", description="Test description", status="Open", user_id=admin.id, category_id=cat.id)
         db.session.add(inc)
         db.session.commit()
         cat_id = cat.id

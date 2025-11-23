@@ -2,10 +2,12 @@
 {% block title %}Categories{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Categories</h2>
     {% if current_user.is_admin() %}
-      <a href="{{ url_for('category.create_category') }}" class="btn btn-success">New Category</a>
+      <a href="{{ url_for('category.create_category') }}" class="btn btn-success">
+        New Category
+      </a>
     {% endif %}
   </div>
 
@@ -22,14 +24,20 @@
     <tbody>
       {% for c in categories %}
       <tr>
-        <td>{{ c.name }}</td>
-        <td>{{ c.description }}</td>
+        <td>
+          <span class="badge bg-secondary" style="font-size: 0.875rem;">
+            {{ c.name }}
+          </span>
+        </td>
+        <td>{{ c.description or '—' }}</td>
         {% if current_user.is_admin() %}
         <td>
-          <div class="d-flex align-items-center">
+          <div class="d-flex align-items-center gap-2">
             <!-- Edit -->
             <a href="{{ url_for('category.edit_category', id=c.id) }}"
-               class="btn btn-sm btn-primary me-2">
+               class="btn btn-sm btn-primary"
+               data-bs-toggle="tooltip"
+               title="Edit category">
               Edit
             </a>
             <!-- Delete: form + launch modal -->
@@ -41,7 +49,9 @@
                       class="btn btn-sm btn-danger"
                       data-bs-toggle="modal"
                       data-bs-target="#confirmDeleteModal"
-                      data-type="category">
+                      data-type="category"
+                      data-bs-toggle="tooltip"
+                      title="Delete category">
                 Delete
               </button>
             </form>

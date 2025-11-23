@@ -1,50 +1,52 @@
-from datetime import datetime
+"""
+Incident routes using service layer for business logic.
+
+This module handles HTTP requests for incidents and delegates
+business logic to the IncidentService.
+"""
 from flask import (
     render_template, redirect, url_for, flash,
-    current_app, request, Response
+    current_app, request
 )
 from flask_login import login_required, current_user
-from math import ceil
 from sqlalchemy.orm import joinedload
 from flask.typing import ResponseReturnValue
 
 from app.incidents import incident_bp
-from app.extensions import db, mail
+from app.extensions import mail
 from app.incidents.forms import IncidentForm
 from app.models.incident import Incident
 from app.models.category import IncidentCategory
-from app.utils.sanitizer import clean_html
-from app.models.audit import AuditLog
 from app.models.user import User
+from app.services.incident_service import IncidentService
+from app.utils.error_handler import NotFoundError, ValidationError, DatabaseError, log_error
 from flask_mail import Message
 
 
 def notify_admins(incident: Incident, action: str) -> None:
     """Helper to email all admins about an incident action."""
-    admins = User.query.filter_by(role='admin').all()
-    for admin in admins:
-        msg = Message(
-            subject=f"Incident #{incident.id} {action.capitalize()}",
-            recipients=[admin.email]
-        )
-        msg.html = render_template(
-            'email/incident_notification.html',
-            user=admin,
-            incident=incident,
-            action=action
-        )
-        try:
-            mail.send(msg)
-        except Exception as e:
-            current_app.logger.error(
-                f"Failed to send '{action}' email for Incident {incident.id} "
-                f"to {admin.email}: {e}"
+    try:
+        admins = User.query.filter_by(role='admin').all()
+        for admin in admins:
+            msg = Message(
+                subject=f"Incident #{incident.id} {action.capitalize()}",
+                recipients=[admin.email]
             )
+            msg.html = render_template(
+                'email/incident_notification.html',
+                user=admin,
+                incident=incident,
+                action=action
+            )
+            mail.send(msg)
+    except Exception as e:
+        log_error(e, f"Failed to send '{action}' email for Incident {incident.id}")
 
 
 @incident_bp.route('/')
 @login_required
 def list_incidents() -> str:
+    """List all incidents with filtering and pagination."""
     # Grab query parameters
     q = request.args.get('q', '').strip()
     status = request.args.get('status', '')
@@ -71,7 +73,7 @@ def list_incidents() -> str:
         except ValueError:
             pass
 
-    # Execute with ordering and pagination
+    # Execute with ordering and pagination (optimized with joinedload)
     pagination = (
         query
         .options(joinedload(Incident.category), joinedload(Incident.creator))
@@ -100,43 +102,48 @@ def list_incidents() -> str:
 @incident_bp.route('/<int:id>')
 @login_required
 def view_incident(id: int) -> str:
-    incident = Incident.query.get_or_404(id)
-    return render_template('incidents/detail.html', incident=incident)
+    """View a single incident."""
+    try:
+        incident = IncidentService.get_incident_or_404(id)
+        return render_template('incidents/detail.html', incident=incident)
+    except NotFoundError as e:
+        log_error(e, f"View incident {id}")
+        flash('Incident not found.', 'danger')
+        return redirect(url_for('incident.list_incidents'))
 
 
 @incident_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create_incident() -> ResponseReturnValue:
+    """Create a new incident."""
     form = IncidentForm()
     form.category.choices = [
         (c.id, c.name) for c in IncidentCategory.query.all()
     ]
 
     if form.validate_on_submit():
-        inc = Incident(
-            title=form.title.data,
-            description=clean_html(form.description.data),
-            status=form.status.data,
-            category_id=form.category.data,
-            user_id=current_user.id
-        )
-        db.session.add(inc)
-        db.session.commit()
-
-        # Audit log
-        db.session.add(AuditLog(
-            user_id=current_user.id,
-            action='create',
-            target_type='Incident',
-            target_id=inc.id
-        ))
-        db.session.commit()
-
-        # Email notification
-        notify_admins(inc, 'created')
-
-        flash('Incident created.', 'success')
-        return redirect(url_for('incident.list_incidents'))
+        try:
+            incident = IncidentService.create_incident(
+                title=form.title.data,
+                description=form.description.data,
+                status=form.status.data,
+                category_id=form.category.data,
+                user_id=current_user.id
+            )
+            
+            # Email notification
+            notify_admins(incident, 'created')
+            
+            flash('Incident created successfully.', 'success')
+            return redirect(url_for('incident.list_incidents'))
+        except ValidationError as e:
+            flash(str(e), 'warning')
+        except DatabaseError as e:
+            log_error(e, "Create incident")
+            flash('Failed to create incident. Please try again.', 'danger')
+        except Exception as e:
+            log_error(e, "Create incident - unexpected error")
+            flash('An unexpected error occurred. Please try again.', 'danger')
 
     return render_template('incidents/form.html', form=form, action='Create')
 
@@ -144,77 +151,79 @@ def create_incident() -> ResponseReturnValue:
 @incident_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_incident(id: int) -> ResponseReturnValue:
-    inc = Incident.query.get_or_404(id)
-    if not (current_user.is_admin() or inc.creator == current_user):
-        flash('Access denied.', 'danger')
+    """Edit an existing incident."""
+    try:
+        incident = IncidentService.get_incident_or_404(id)
+        
+        # Check authorization
+        if not (current_user.is_admin() or incident.creator == current_user):
+            flash('You do not have permission to edit this incident.', 'danger')
+            return redirect(url_for('incident.list_incidents'))
+
+        form = IncidentForm(obj=incident)
+        form.category.choices = [
+            (c.id, c.name) for c in IncidentCategory.query.all()
+        ]
+
+        if form.validate_on_submit():
+            try:
+                updated_incident = IncidentService.update_incident(
+                    incident_id=id,
+                    title=form.title.data,
+                    description=form.description.data,
+                    status=form.status.data,
+                    category_id=form.category.data
+                )
+                
+                # Email notification
+                notify_admins(updated_incident, 'updated')
+                
+                flash('Incident updated successfully.', 'success')
+                return redirect(url_for('incident.view_incident', id=id))
+            except ValidationError as e:
+                flash(str(e), 'warning')
+            except DatabaseError as e:
+                log_error(e, f"Update incident {id}")
+                flash('Failed to update incident. Please try again.', 'danger')
+            except Exception as e:
+                log_error(e, f"Update incident {id} - unexpected error")
+                flash('An unexpected error occurred. Please try again.', 'danger')
+
+        return render_template('incidents/form.html', form=form, action='Edit')
+    except NotFoundError as e:
+        log_error(e, f"Edit incident {id}")
+        flash('Incident not found.', 'danger')
         return redirect(url_for('incident.list_incidents'))
-
-    form = IncidentForm(obj=inc)
-    form.category.choices = [
-        (c.id, c.name) for c in IncidentCategory.query.all()
-    ]
-
-    if form.validate_on_submit():
-        inc.title = form.title.data
-        inc.description = clean_html(form.description.data)
-        inc.status = form.status.data
-        inc.category_id = form.category.data
-
-        if inc.status.lower() == 'closed' and inc.closed_at is None:
-            inc.closed_at = datetime.utcnow()
-        elif inc.status.lower() != 'closed':
-            inc.closed_at = None
-        db.session.commit()
-
-        # Audit log
-        db.session.add(AuditLog(
-            user_id=current_user.id,
-            action='update',
-            target_type='Incident',
-            target_id=inc.id
-        ))
-        db.session.commit()
-
-        # Email notification
-        notify_admins(inc, 'updated')
-
-        flash('Incident updated.', 'success')
-        return redirect(url_for('incident.view_incident', id=inc.id))
-
-    return render_template('incidents/form.html', form=form, action='Edit')
 
 
 @incident_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_incident(id: int) -> ResponseReturnValue:
-    inc = Incident.query.get_or_404(id)
+    """Delete an incident."""
+    # Check authorization
     if not current_user.is_admin():
-        flash('Only admins can delete incidents.', 'danger')
-    else:
-        inc_id = inc.id  # Store ID before deletion
-        db.session.delete(inc)
-        db.session.commit()
-
-        # Audit log (created after delete/commit)
-        log = AuditLog(
-            user_id=current_user.id,
-            action='delete',
-            target_type='Incident',
-            target_id=inc_id
-        )
-        db.session.add(log)
-        db.session.commit()
-        print(f"Created audit log for delete: id={log.id}, target_id={inc_id}")
-        # Print all audit logs in this context
-        all_logs = AuditLog.query.order_by(AuditLog.id.desc()).all()  # type: ignore[attr-defined]
-        print("[ROUTE] All audit logs after delete:")
-        for log_entry in all_logs:
-            print(f"  action={log_entry.action}, target_type={log_entry.target_type}, "
-                  f"target_id={log_entry.target_id}, id={log_entry.id}, time={log_entry.timestamp}")
-
-        # Email notification (pass only ID, not object)
-        notify_admins(inc, 'deleted')
-
-        flash('Incident deleted.', 'success')
+        flash('Only administrators can delete incidents.', 'danger')
+        return redirect(url_for('incident.list_incidents'))
+    
+    try:
+        # Get incident before deletion for notification
+        incident = IncidentService.get_incident_or_404(id)
+        
+        # Delete using service
+        IncidentService.delete_incident(id)
+        
+        # Email notification
+        notify_admins(incident, 'deleted')
+        
+        flash('Incident deleted successfully.', 'success')
+    except NotFoundError as e:
+        log_error(e, f"Delete incident {id}")
+        flash('Incident not found.', 'danger')
+    except DatabaseError as e:
+        log_error(e, f"Delete incident {id}")
+        flash('Failed to delete incident. Please try again.', 'danger')
+    except Exception as e:
+        log_error(e, f"Delete incident {id} - unexpected error")
+        flash('An unexpected error occurred. Please try again.', 'danger')
 
     return redirect(url_for('incident.list_incidents'))

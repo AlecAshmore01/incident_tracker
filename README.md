@@ -80,6 +80,17 @@ app/                  # Main application package
 └── config.py         # Environment-specific configuration
 ```
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Architecture Documentation](docs/ARCHITECTURE.md)** - Detailed architecture, design patterns, and implementation decisions
+- **[Programming Concepts](docs/PROGRAMMING_CONCEPTS.md)** - Explanation of Python and Flask syntax, concepts, and patterns used
+- **[DevOps Processes](docs/DEVOPS_PROCESSES.md)** - Complete DevOps workflow, CI/CD pipeline, and deployment processes
+- **[Security Documentation](docs/SECURITY.md)** - OWASP Top 10 protection mapping and security measures
+- **[Deployment Guide](DEPLOYMENT.md)** - Step-by-step deployment instructions for Render.com
+- **[Sprint Notes](docs/sprint_notes/)** - Development sprint documentation and progress tracking
+
 ## 📊 Database Schema
 
 ### Data Models
