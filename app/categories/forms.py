@@ -14,6 +14,6 @@ class CategoryForm(FlaskForm):
     )
     submit = SubmitField('Save')
 
-    def validate_name(self, field):
+    def validate_name(self, field: StringField) -> None:
         if '<' in field.data or '>' in field.data:
             raise ValidationError("Category name cannot contain '<' or '>' characters.")

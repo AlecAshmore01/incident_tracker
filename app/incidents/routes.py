@@ -206,7 +206,7 @@ def delete_incident(id: int) -> ResponseReturnValue:
         db.session.commit()
         print(f"Created audit log for delete: id={log.id}, target_id={inc_id}")
         # Print all audit logs in this context
-        all_logs = AuditLog.query.order_by(AuditLog.id.desc()).all()
+        all_logs = AuditLog.query.order_by(AuditLog.id.desc()).all()  # type: ignore[attr-defined]
         print("[ROUTE] All audit logs after delete:")
         for log_entry in all_logs:
             print(f"  action={log_entry.action}, target_type={log_entry.target_type}, "

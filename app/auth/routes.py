@@ -91,6 +91,9 @@ def two_factor_setup() -> ResponseReturnValue:
         return redirect(url_for('auth.login'))
 
     user = db.session.get(User, user_id)
+    if user is None:
+        flash('User not found.', 'danger')
+        return redirect(url_for('auth.login'))
     # Generate provisioning URI and QR code
     uri = user.get_totp_uri()
     img = qrcode.make(uri)
@@ -111,9 +114,16 @@ def two_factor_verify() -> ResponseReturnValue:
         return redirect(url_for('auth.login'))
 
     user = db.session.get(User, user_id)
+    if user is None:
+        flash('User not found.', 'danger')
+        return redirect(url_for('auth.login'))
+    
     form = OTPForm()
     if form.validate_on_submit():
         token = form.token.data
+        if user.otp_secret is None:
+            flash('2FA not set up for this user.', 'danger')
+            return redirect(url_for('auth.login'))
         totp = pyotp.TOTP(user.otp_secret)
         if totp.verify(token):
             # Successful 2FA: complete login
