@@ -33,6 +33,7 @@ git push origin main
    - **Plan**: Free (for testing/development)
 4. Click **"Create Database"**
 5. **Important**: Copy the **Internal Database URL** - you'll need this later
+   - **⚠️ SECURITY WARNING**: Never commit database URLs or passwords to Git!
 
 ### Step 3: Create the Web Service
 
@@ -55,7 +56,7 @@ git push origin main
      ```
    - **Start Command**: 
      ```bash
-     gunicorn run:app
+     gunicorn wsgi:app
      ```
 
    **Advanced Settings (optional):**
