@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: incident-tracker
+    env: python
+    buildCommand: pip install -r requirements.txt && flask db upgrade
+    startCommand: gunicorn run:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.13.0
+    healthCheckPath: /
+
