@@ -5,6 +5,7 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc
 from flask.typing import ResponseReturnValue
+from datetime import datetime, timedelta
 
 from app.main import main_bp
 from app.extensions import db
@@ -49,59 +50,83 @@ def dashboard_data() -> ResponseReturnValue:
     if not current_user.is_admin():
         abort(403)
 
-    # 1) Incidents by status
-    status_data = (
-        db.session.query(Incident.status, func.count(Incident.id))  # type: ignore
-        .group_by(Incident.status)
-        .all()
-    )
-    statuses, status_counts = zip(*status_data) if status_data else ([], [])
-
-    # 2) Incidents over the last 30 days
-    time_data = (
-        db.session.query(
-            func.strftime('%Y-%m-%d', Incident.timestamp),
-            func.count(Incident.id)  # type: ignore
+    try:
+        # 1) Incidents by status
+        status_data = (
+            db.session.query(Incident.status, func.count(Incident.id))  # type: ignore
+            .group_by(Incident.status)
+            .all()
         )
-        .filter(Incident.timestamp >= func.datetime('now', '-30 days'))
-        .group_by(func.strftime('%Y-%m-%d', Incident.timestamp))
-        .order_by(func.strftime('%Y-%m-%d', Incident.timestamp))
-        .all()
-    )
-    dates, daily_counts = zip(*time_data) if time_data else ([], [])
+        statuses, status_counts = zip(*status_data) if status_data else ([], [])
 
-    # 3) Top 5 categories by incident count
-    cat_data = (
-        db.session.query(
-            IncidentCategory.name,
-            func.count(Incident.id)  # type: ignore
+        # 2) Incidents over the last 30 days
+        # Use database-agnostic approach: fetch all incidents and group in Python
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        recent_incidents = (
+            Incident.query
+            .filter(Incident.timestamp >= thirty_days_ago)
+            .all()
         )
-        .join(Incident, Incident.category_id == IncidentCategory.id)
-        .group_by(IncidentCategory.name)
-        .order_by(desc(func.count(Incident.id)))  # type: ignore
-        .limit(5)
-        .all()
-    )
-    cat_names, cat_counts = zip(*cat_data) if cat_data else ([], [])
+        
+        # Group by date in Python (database-agnostic)
+        daily_data = {}
+        for incident in recent_incidents:
+            date_str = incident.timestamp.strftime('%Y-%m-%d')
+            daily_data[date_str] = daily_data.get(date_str, 0) + 1
+        
+        dates = sorted(daily_data.keys())
+        daily_counts = [daily_data[date] for date in dates]
 
-    # 4) Average resolution time (in hours)
-    avg_days = (
-        db.session.query(
-            func.avg(
-                func.julianday(Incident.closed_at) - func.julianday(Incident.timestamp)
+        # 3) Top 5 categories by incident count
+        cat_data = (
+            db.session.query(
+                IncidentCategory.name,
+                func.count(Incident.id)  # type: ignore
             )
+            .join(Incident, Incident.category_id == IncidentCategory.id)
+            .group_by(IncidentCategory.name)
+            .order_by(desc(func.count(Incident.id)))  # type: ignore
+            .limit(5)
+            .all()
         )
-        .filter(Incident.closed_at != None)  # noqa: E711
-        .scalar() or 0.0
-    )
-    avg_hours = round(avg_days * 24, 2)
+        cat_names, cat_counts = zip(*cat_data) if cat_data else ([], [])
 
-    return jsonify({
-        'statuses':      list(statuses),
-        'status_counts': list(status_counts),
-        'dates':         list(dates),
-        'daily_counts':  list(daily_counts),
-        'cat_names':     list(cat_names),
-        'cat_counts':    list(cat_counts),
-        'avg_hours':     avg_hours
-    })
+        # 4) Average resolution time (in hours)
+        # Database-agnostic: calculate in Python
+        closed_incidents = (
+            db.session.query(Incident.timestamp, Incident.closed_at)
+            .filter(Incident.closed_at != None)  # noqa: E711
+            .all()
+        )
+        
+        if closed_incidents:
+            total_hours = 0
+            for timestamp, closed_at in closed_incidents:
+                delta = closed_at - timestamp
+                total_hours += delta.total_seconds() / 3600
+            avg_hours = round(total_hours / len(closed_incidents), 2)
+        else:
+            avg_hours = 0.0
+
+        return jsonify({
+            'statuses':      list(statuses),
+            'status_counts': list(status_counts),
+            'dates':         dates,
+            'daily_counts':  daily_counts,
+            'cat_names':     list(cat_names),
+            'cat_counts':    list(cat_counts),
+            'avg_hours':     avg_hours
+        })
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f'Error in dashboard_data: {str(e)}', exc_info=True)
+        # Return empty data structure on error
+        return jsonify({
+            'statuses':      [],
+            'status_counts': [],
+            'dates':         [],
+            'daily_counts':  [],
+            'cat_names':     [],
+            'cat_counts':    [],
+            'avg_hours':     0.0
+        }), 500
