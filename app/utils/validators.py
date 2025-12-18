@@ -5,7 +5,7 @@ This module provides reusable validators that can be used
 across different forms to ensure consistent validation logic.
 """
 import re
-from typing import Optional
+from typing import Optional, Any
 from wtforms.validators import ValidationError
 
 
@@ -36,7 +36,7 @@ class StrongPassword:
         self.require_special = require_special
         self.message = message
     
-    def __call__(self, form, field):
+    def __call__(self, form: Any, field: Any) -> None:
         password = field.data
         if not password:
             return
@@ -74,7 +74,7 @@ class NoHTML:
     def __init__(self, message: Optional[str] = None):
         self.message = message or "This field cannot contain HTML tags"
     
-    def __call__(self, form, field):
+    def __call__(self, form: Any, field: Any) -> None:
         if field.data and ('<' in field.data or '>' in field.data):
             raise ValidationError(self.message)
 
@@ -92,7 +92,7 @@ class SafeText:
     def __init__(self, message: Optional[str] = None):
         self.message = message or "Text contains potentially unsafe content"
     
-    def __call__(self, form, field):
+    def __call__(self, form: Any, field: Any) -> None:
         if not field.data:
             return
         

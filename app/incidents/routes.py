@@ -101,7 +101,7 @@ def list_incidents() -> str:
 
 @incident_bp.route('/<int:id>')
 @login_required
-def view_incident(id: int) -> str:
+def view_incident(id: int) -> ResponseReturnValue:
     """View a single incident."""
     try:
         incident = IncidentService.get_incident_or_404(id)
