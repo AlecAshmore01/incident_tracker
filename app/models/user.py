@@ -40,6 +40,12 @@ class User(UserMixin, db.Model):  # type: ignore
 
     def is_locked(self) -> bool:
         """Return True if the account is currently locked."""
+        # Clear expired locks
+        if self.lock_until and datetime.utcnow() >= self.lock_until:
+            self.lock_until = None
+            db.session.commit()
+            return False
+        # Check if currently locked
         if self.lock_until and datetime.utcnow() < self.lock_until:
             return True
         return False
@@ -49,10 +55,13 @@ class User(UserMixin, db.Model):  # type: ignore
         Increment failure count; lock account if threshold reached.
         Resets failed_logins and sets lock_until when exceeded.
         """
+        # Ensure user is in session
+        db.session.add(self)
         self.failed_logins += 1
         if self.failed_logins >= max_attempts:
             self.lock_until = datetime.utcnow() + timedelta(minutes=lock_minutes)
             self.failed_logins = 0
+        db.session.flush()  # Ensure changes are visible
         db.session.commit()
 
     def reset_failed_logins(self) -> None:
