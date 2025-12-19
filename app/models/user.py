@@ -41,7 +41,7 @@ class User(UserMixin, db.Model):  # type: ignore
     def is_locked(self) -> bool:
         """Return True if the account is currently locked."""
         # Get lock_until directly from database to avoid stale data
-        lock_until = db.session.query(User.lock_until).filter_by(id=self.id).scalar()  # type: ignore[arg-type]
+        lock_until = db.session.query(User.lock_until).filter_by(id=self.id).scalar()  # type: ignore[call-overload]
         now = datetime.utcnow()
         
         # Clear expired locks
@@ -64,7 +64,7 @@ class User(UserMixin, db.Model):  # type: ignore
         Resets failed_logins and sets lock_until when exceeded.
         """
         # Get current failed_logins directly from database to avoid stale data
-        current_failed = db.session.query(User.failed_logins).filter_by(id=self.id).scalar()  # type: ignore[arg-type]
+        current_failed = db.session.query(User.failed_logins).filter_by(id=self.id).scalar()  # type: ignore[call-overload]
         if current_failed is None:
             current_failed = 0
         

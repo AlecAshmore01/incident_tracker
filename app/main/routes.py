@@ -94,7 +94,7 @@ def dashboard_data() -> ResponseReturnValue:
         # 4) Average resolution time (in hours)
         # Database-agnostic: calculate in Python
         closed_incidents = (
-            db.session.query(Incident.timestamp, Incident.closed_at)  # type: ignore[arg-type]
+            db.session.query(Incident.timestamp, Incident.closed_at)  # type: ignore[call-overload]
             .filter(Incident.closed_at != None)  # noqa: E711
             .all()
         )
