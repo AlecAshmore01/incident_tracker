@@ -55,13 +55,8 @@ def login() -> ResponseReturnValue:
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        
-        # Refresh user from database to get latest lockout state
-        if user:
-            db.session.expire(user)
-            db.session.refresh(user)
 
-        # 1) Check for account lockout
+        # 1) Check for account lockout (is_locked() reads directly from DB)
         if user and user.is_locked():
             flash(
                 f"Account locked until {user.lock_until.strftime('%H:%M on %Y-%m-%d')}.",
@@ -81,10 +76,8 @@ def login() -> ResponseReturnValue:
             session['pre_2fa_user'] = user.id
             return redirect(url_for('auth.two_factor_verify'))
 
-        # 3) Failed login: increment and possibly lock
+        # 3) Failed login: increment and possibly lock (reads directly from DB)
         if user:
-            # Refresh to get latest failed_logins count before incrementing
-            db.session.refresh(user)
             user.register_failed_login(max_attempts=5, lock_minutes=1)
         flash('Invalid username or password.', 'danger')
 

@@ -40,13 +40,21 @@ class User(UserMixin, db.Model):  # type: ignore
 
     def is_locked(self) -> bool:
         """Return True if the account is currently locked."""
+        # Get lock_until directly from database to avoid stale data
+        lock_until = db.session.query(User.lock_until).filter_by(id=self.id).scalar()
+        now = datetime.utcnow()
+        
         # Clear expired locks
-        if self.lock_until and datetime.utcnow() >= self.lock_until:
-            self.lock_until = None
+        if lock_until and now >= lock_until:
+            db.session.query(User).filter_by(id=self.id).update({'lock_until': None})
             db.session.commit()
+            self.lock_until = None
             return False
+        
         # Check if currently locked
-        if self.lock_until and datetime.utcnow() < self.lock_until:
+        if lock_until and now < lock_until:
+            # Update self for consistency
+            self.lock_until = lock_until
             return True
         return False
 
@@ -55,13 +63,33 @@ class User(UserMixin, db.Model):  # type: ignore
         Increment failure count; lock account if threshold reached.
         Resets failed_logins and sets lock_until when exceeded.
         """
-        # Ensure user is in session
-        db.session.add(self)
-        self.failed_logins += 1
-        if self.failed_logins >= max_attempts:
-            self.lock_until = datetime.utcnow() + timedelta(minutes=lock_minutes)
+        # Get current failed_logins directly from database to avoid stale data
+        current_failed = db.session.query(User.failed_logins).filter_by(id=self.id).scalar()
+        if current_failed is None:
+            current_failed = 0
+        
+        # Increment
+        new_failed = current_failed + 1
+        current_app.logger.info(f'Failed login attempt {new_failed}/{max_attempts} for user {self.username}')
+        
+        # Update database directly
+        if new_failed >= max_attempts:
+            lock_until = datetime.utcnow() + timedelta(minutes=lock_minutes)
+            db.session.query(User).filter_by(id=self.id).update({
+                'failed_logins': 0,
+                'lock_until': lock_until
+            })
+            current_app.logger.info(f'Account locked for user {self.username} until {lock_until}')
+            # Update self
             self.failed_logins = 0
-        db.session.flush()  # Ensure changes are visible
+            self.lock_until = lock_until
+        else:
+            db.session.query(User).filter_by(id=self.id).update({
+                'failed_logins': new_failed
+            })
+            # Update self
+            self.failed_logins = new_failed
+        
         db.session.commit()
 
     def reset_failed_logins(self) -> None:
