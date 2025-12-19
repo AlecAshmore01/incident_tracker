@@ -69,7 +69,7 @@ def dashboard_data() -> ResponseReturnValue:
         )
         
         # Group by date in Python (database-agnostic)
-        daily_data = {}
+        daily_data: dict[str, int] = {}
         for incident in recent_incidents:
             date_str = incident.timestamp.strftime('%Y-%m-%d')
             daily_data[date_str] = daily_data.get(date_str, 0) + 1
@@ -94,7 +94,7 @@ def dashboard_data() -> ResponseReturnValue:
         # 4) Average resolution time (in hours)
         # Database-agnostic: calculate in Python
         closed_incidents = (
-            db.session.query(Incident.timestamp, Incident.closed_at)
+            db.session.query(Incident.timestamp, Incident.closed_at)  # type: ignore[arg-type]
             .filter(Incident.closed_at != None)  # noqa: E711
             .all()
         )
